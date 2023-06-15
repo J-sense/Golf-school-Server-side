@@ -4,6 +4,7 @@ const app = express()
 require('dotenv').config()
 const jwt = require('jsonwebtoken')
 const port = process.env.PORT || 5000;
+const stripe= require('stripe')(process.env.PAYMENT_SECRET_KEY)
 const { ObjectId } = require('mongodb');
 
 
@@ -43,6 +44,9 @@ async function run() {
     try {
         const userCollection = client.db('userdb').collection('users')
         const classCollection = client.db('userdb').collection('classes')
+        const selectedClassesCollection = client.db('userdb').collection('selectedClass')
+        const paymentsCollection = client.db('userdb').collection('payment')
+        const enrolledClassesCollection = client.db('userdb').collection('enrolledClasses')
 
 
 
@@ -170,9 +174,9 @@ async function run() {
             const result = await classCollection.insertOne(addclass)
             res.send(result)
         })
-       
-        
-        app.get('/addClasses',veryfyJwt, async (req, res) => {
+
+
+        app.get('/addClasses', veryfyJwt, async (req, res) => {
             console.log(req.query.email);
             let query = {};
             if (req.query?.email) {
@@ -184,13 +188,13 @@ async function run() {
 
 
 
-        app.get('/allClasses', async(req,res)=>{
+        app.get('/allClasses', async (req, res) => {
             const result = await classCollection.find().toArray()
             res.send(result)
         })
 
-      
-// make class status approved
+
+        // make class status approved
         app.patch('/addClasses/approve/:id', async (req, res) => {
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) }; // Update the filter to match the email field
@@ -216,6 +220,131 @@ async function run() {
             res.send(result);
         });
 
+
+
+        // for display all the instructor : by get operation
+        app.get('/instructors', async (req, res) => {
+            // const role = req.query.role;
+            const role = 'instructor';
+            const query = { role: role };
+            const result = await userCollection.find(query).toArray();
+            res.send(result);
+        })
+
+        // for display approved card
+        app.get('/approvedCard', async (req, res) => {
+            const status = 'approved';
+            const query = { status: status };
+            const result = await classCollection.find(query).toArray();
+
+            res.send(result);
+        })
+
+
+
+        app.post('/selectedClasses', async (req, res) => {
+            const selectedClass = req.body;
+            const result = await selectedClassesCollection.insertOne(selectedClass);
+            res.send(result);
+        })
+
+        app.get('/selectedClasses/:email', veryfyJwt, verifyStudent, async (req, res) => {
+            const email = req.params.email;
+            const query = { studentEmail: email };
+            console.log(query);
+            const result = await selectedClassesCollection.find(query).toArray();
+            // console.log(result);
+            res.send(result);
+        })
+
+        // for delete class
+        app.delete('/selectedClasses/:id', veryfyJwt, verifyStudent, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await selectedClassesCollection.deleteOne(query);
+            // console.log(result);
+            res.send(result);
+        })
+
+
+        // payment
+        app.post('/create-payment-intent', veryfyJwt, async (req, res) => {
+            const { price } = req.body;
+            console.log(price);
+            const amount = price * 100;
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: 'usd',
+                payment_method_types: ['card']
+            });
+
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+            })
+        });
+
+        // payment 
+        app.post('/payments', veryfyJwt, async (req, res) => {
+            const payment = req.body;
+            console.log(payment);
+            const insertedResult = await paymentsCollection.insertOne(payment); // ok
+
+            const queryClass = {
+                _id: new ObjectId(payment.selectedClassId)
+            };
+
+            const query = {
+                selectClassId: payment.selectedClassId
+            };
+
+            const findEnrolledClasses = await selectedClassesCollection.findOne(query);
+            const insertOnEnrollment = await enrolledClassesCollection.insertOne(findEnrolledClasses);
+            const deletedResult = await selectedClassesCollection.deleteOne(query);
+
+            const updateClass = {
+                $inc: {
+                    availableSeats: -1,
+                    enrolled: 1
+                }
+            }
+
+            const updateClassCollection = await classCollection.updateOne(queryClass, updateClass);
+            res.send({ insertedResult, deletedResult, insertOnEnrollment, updateClassCollection });
+        })
+        // payment
+
+
+        // payment history query by email
+        app.get('/paymentSuccessfull/:email', veryfyJwt, verifyStudent, async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email };
+            const result = await paymentsCollection.find(query).sort({ date: -1 }).toArray();
+            res.send(result);
+        })
+
+        // enrolled class 
+        app.get('/enrolledStudent/:email', veryfyJwt, verifyStudent, async (req, res) => {
+            const email = req.params.email;
+            const query = { studentEmail: email };
+            const result = await enrolledClassesCollection.find(query).toArray();
+            res.send(result);
+        })
+
+        // top classes base on enroll by student
+        app.get('/topClasses', async (req, res) => {
+            const result = await classCollection.find().sort({ enrolled: -1 }).limit(6).toArray();
+            res.send(result);
+        })
+
+
+       
+        app.get('/instructors', async (req, res) => {
+            // const role = req.query.role;
+            const role = 'instructor';
+            const query = { role: role };
+            const result = await usersCollection.find(query).toArray();
+            res.send(result);
+        })
 
         // Connect the client to the server	(optional starting in v4.7)
         // await client.connect();
