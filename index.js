@@ -331,10 +331,10 @@ async function run() {
         })
 
         // top classes base on enroll by student
-        // app.get('/topClasses', async (req, res) => {
-        //     const result = await classCollection.find().sort({ enrolled: -1 }).limit(6).toArray();
-        //     res.send(result);
-        // })
+        app.get('/topClasses', async (req, res) => {
+            const result = await classCollection.find().sort({ enrolled: -1 }).limit(6).toArray();
+            res.send(result);
+        })
 
 
        
