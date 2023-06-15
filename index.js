@@ -353,8 +353,11 @@ async function run() {
             res.send(result);
         })
 
-
-       
+        
+        app.get('/topClasses', async (req, res) => {
+            const result = await classCollection.find().sort({ enrolled: -1 }).limit(6).toArray();
+            res.send(result);
+        })
 
         // Connect the client to the server	(optional starting in v4.7)
         // await client.connect();
