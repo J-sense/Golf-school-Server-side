@@ -342,9 +342,19 @@ async function run() {
             // const role = req.query.role;
             const role = 'instructor';
             const query = { role: role };
-            const result = await usersCollection.find(query).toArray();
+            const result = await userCollection.find(query).toArray();
             res.send(result);
         })
+
+        app.get('/popularInstructors', async (req, res) => {
+            const role = 'instructor';
+            const query = { role: role };
+            const result = await userCollection.find(query).limit(6).toArray();
+            res.send(result);
+        })
+
+
+       
 
         // Connect the client to the server	(optional starting in v4.7)
         // await client.connect();
