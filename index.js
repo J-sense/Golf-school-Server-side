@@ -284,33 +284,33 @@ async function run() {
         });
 
         // payment 
-        // app.post('/payments', veryfyJwt, async (req, res) => {
-        //     const payment = req.body;
-        //     console.log(payment);
-        //     const insertedResult = await paymentsCollection.insertOne(payment); // ok
+        app.post('/payments', veryfyJwt, async (req, res) => {
+            const payment = req.body;
+            console.log(payment);
+            const insertedResult = await paymentsCollection.insertOne(payment); // ok
 
-        //     const queryClass = {
-        //         _id: new ObjectId(payment.selectedClassId)
-        //     };
+            const queryClass = {
+                _id: new ObjectId(payment.selectedClassId)
+            };
 
-        //     const query = {
-        //         selectClassId: payment.selectedClassId
-        //     };
+            const query = {
+                selectClassId: payment.selectedClassId
+            };
 
-        //     const findEnrolledClasses = await selectedClassesCollection.findOne(query);
-        //     const insertOnEnrollment = await enrolledClassesCollection.insertOne(findEnrolledClasses);
-        //     const deletedResult = await selectedClassesCollection.deleteOne(query);
+            const findEnrolledClasses = await selectedClassesCollection.findOne(query);
+            const insertOnEnrollment = await enrolledClassesCollection.insertOne(findEnrolledClasses);
+            const deletedResult = await selectedClassesCollection.deleteOne(query);
 
-        //     const updateClass = {
-        //         $inc: {
-        //             availableSeats: -1,
-        //             enrolled: 1
-        //         }
-        //     }
+            const updateClass = {
+                $inc: {
+                    availableSeats: -1,
+                    enrolled: 1
+                }
+            }
 
-        //     const updateClassCollection = await classCollection.updateOne(queryClass, updateClass);
-        //     res.send({ insertedResult, deletedResult, insertOnEnrollment, updateClassCollection });
-        // })
+            const updateClassCollection = await classCollection.updateOne(queryClass, updateClass);
+            res.send({ insertedResult, deletedResult, insertOnEnrollment, updateClassCollection });
+        })
         // payment
 
 
@@ -331,10 +331,10 @@ async function run() {
         })
 
         // top classes base on enroll by student
-        app.get('/topClasses', async (req, res) => {
-            const result = await classCollection.find().sort({ enrolled: -1 }).limit(6).toArray();
-            res.send(result);
-        })
+        // app.get('/topClasses', async (req, res) => {
+        //     const result = await classCollection.find().sort({ enrolled: -1 }).limit(6).toArray();
+        //     res.send(result);
+        // })
 
 
        
